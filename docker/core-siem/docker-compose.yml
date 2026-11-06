@@ -1,0 +1,113 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION:-8.17.0}
+    container_name: jarvis-elasticsearch
+    restart: unless-stopped
+    environment:
+      - node.name=jarvis-es01
+      - cluster.name=jarvis-siem-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms${ES_HEAP_SIZE:-4g} -Xmx${ES_HEAP_SIZE:-4g}"
+      - xpack.security.enabled=true
+      - xpack.security.authc.api_key.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-ChangemeSecurePass2026!}
+      - xpack.security.http.ssl.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "${ES_PORT:-9200}:9200"
+    networks:
+      - jarvis-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD:-ChangemeSecurePass2026!} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION:-8.17.0}
+    container_name: jarvis-kibana
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - SERVER_NAME=jarvis-kibana
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD:-ChangemeSecurePass2026!}
+      - XPACK_SECURITY_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-12345678901234567890123456789012}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-12345678901234567890123456789012}
+      - XPACK_REPORTING_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-12345678901234567890123456789012}
+      - XPACK_SECURITY_SESSION_IDLETIMEOUT=24h
+    volumes:
+      - kibana_data:/usr/share/kibana/data
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    networks:
+      - jarvis-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -I http://localhost:5601/api/status | grep -q 'HTTP/1.1 200 OK\\|HTTP/1.1 302 Found'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${ELASTIC_VERSION:-8.17.0}
+    container_name: jarvis-logstash
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USER=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD:-ChangemeSecurePass2026!}
+    volumes:
+      - ./pipeline:/usr/share/logstash/pipeline:ro
+      - ./config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    ports:
+      - "${UNIFI_SYSLOG_PORT:-514}:514/udp"
+      - "${UNIFI_SYSLOG_PORT:-514}:514/tcp"
+      - "${SYSMON_BEAT_PORT:-5044}:5044"
+    networks:
+      - jarvis-net
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+volumes:
+  es_data:
+    driver: local
+    # To mount directly to a ZFS mount or 11.5 TiB storage dataset on Proxmox:
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /mnt/pve-storage/jarvis/es_data
+  kibana_data:
+    driver: local
+
+networks:
+  jarvis-net:
+    name: jarvis-net
+    driver: bridge
