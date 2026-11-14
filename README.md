@@ -4,7 +4,7 @@
 [![FastMCP](https://img.shields.io/badge/FastMCP-0.4.0+-4B32C3?style=for-the-badge&logo=python&logoColor=white)](https://github.com/jlowin/fastmcp)
 [![Proxmox VE](https://img.shields.io/badge/Proxmox_VE-Virtualization-E57000?style=for-the-badge&logo=proxmox&logoColor=white)](https://www.proxmox.com/)
 [![Ollama GPU](https://img.shields.io/badge/Ollama_GPU-Local_Inference-black?style=for-the-badge&logo=nvidia&logoColor=white)](https://ollama.ai/)
-[![Python Tests](https://img.shields.io/badge/Pytest-32_Passed_(100%25)-success?style=for-the-badge&logo=pytest&logoColor=white)](mcp-server/tests)
+[![Python Tests](https://img.shields.io/badge/Pytest-37_Passed_(100%25)-success?style=for-the-badge&logo=pytest&logoColor=white)](mcp-server/tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
 An enterprise-grade, hybrid Security Operations (SecOps) platform that unifies perimeter firewall intelligence, endpoint telemetry, virtualization observability, and agentic AI incident triage into an air-gapped, zero-cloud architecture.
@@ -17,11 +17,12 @@ Built on **Elasticsearch 8.17**, **Logstash**, **Kibana**, **Ubiquiti UniFi**, *
 
 - **Perimeter Telemetry Streaming**: High-throughput syslog ingestion (UDP/TCP 514) from UniFi Dream Router (UDR) gateways, processing over **1.12 million firewall drops** with automated Grok parsing and MaxMind GeoIP / ASN enrichment.
 - **Endpoint Detection & Visibility**: Real-time Windows endpoint monitoring via **Microsoft Sysmon** and Elastic Winlogbeat, capturing process lineage (EID 1), network connections (EID 3), file tampering (EID 11), registry persistence (EID 13), and DNS queries (EID 22).
+- **Detection-as-Code & Automated Rule Curation**: 3-stage pipeline that evaluates **720+ upstream `elastic/detection-rules`** against live Elasticsearch `_field_caps`, runs 12-way parallel EQL/KQL retro-hunts with telemetry liveness proof across **393 compatible candidates**, tunes homelab exceptions, and deploys **25 high-signal rules** directly to Kibana's Detection Engine.
 - **Virtualization & Host Observability**: Bidirectional telemetry integration with **Proxmox VE** REST APIs, tracking node CPU/RAM allocations, virtual machine states, and ZFS storage pools.
 - **Threat Intelligence & Behavioral Scoring**: Multi-feed reputation engine combining external intelligence (AbuseIPDB, VirusTotal) with local SIEM behavioral risk heuristics (0–100 score, horizontal port scan breadth, critical service targeting, Sysmon correlation).
 - **Autonomous SecOps Incident Triage**: Hands-off perimeter triage workflow analyzing attack spikes, categorizing threat actor profiles, and generating actionable drop/ban recommendations via local `llama3.2:3b` at **111.5 tok/s**.
 - **Dedicated Local GPU Acceleration**: Hardware PCIe passthrough to a dedicated Ollama VM powering sub-second local LLM inference (**111.5 tok/s**, 513ms warm latency) with zero external API dependencies or cloud data egress.
-- **Agentic AI Flight Recorder & MCP Server**: A standards-compliant **FastMCP** server providing autonomous security agents direct tool access to the SIEM cluster while logging structured audit trails (`logs-ai.agent_tasks-default`) capturing reasoning tokens, throughput, and system health.
+- **Agentic AI Flight Recorder & MCP Server**: A standards-compliant **FastMCP** server providing autonomous security agents direct tool access (21 tools) to the SIEM cluster while logging structured audit trails (`logs-ai.agent_tasks-default`) capturing reasoning tokens, throughput, and system health.
 
 ---
 
@@ -42,7 +43,7 @@ flowchart TD
 
     subgraph CoreSIEM["Core SIEM Cluster (Proxmox VM 1)"]
         ES[("Elasticsearch 8.17 Cluster\n- logs-network.unifi-default\n- logs-endpoint.sysmon-default\n- logs-ai.agent_tasks-default\n- metrics-system.health-default")]
-        KIB["Kibana 8.17 Analytics\n- UniFi Threat Map\n- Sysmon Process Tree\n- AI Flight Recorder"]
+        KIB["Kibana 8.17 Analytics & Detection Engine\n- 25 Active Detection Rules\n- UniFi Threat Map\n- Sysmon Process Tree\n- AI Flight Recorder"]
     end
 
     subgraph GPUCompute["Local GPU Compute Node (Proxmox VM 2)"]
@@ -51,7 +52,7 @@ flowchart TD
     end
 
     subgraph AgentLayer["Agentic AI & FastMCP Orchestration"]
-        MCP["Jarvis FastMCP Server\n(18 Security & Ops Tools)"]
+        MCP["Jarvis FastMCP Server\n(21 Security & Ops Tools)"]
         AI_AGENT["Autonomous AI Agents\n(Claude, Gemini, Antigravity)"]
     end
 
@@ -73,12 +74,13 @@ flowchart TD
 | Metric / Dimension | Verified Benchmark | Context & Hardware |
 | :--- | :--- | :--- |
 | **Ingested Firewall Events** | **3,372,666+ documents** | Real-world WAN drop & flow telemetry from UniFi Dream Router |
-| **Endpoint Events Streamed** | **117,143+ documents** | Windows Sysmon telemetry forwarded via Winlogbeat |
+| **Endpoint Events Streamed** | **117,143+ documents** | Windows Sysmon & Security telemetry forwarded via Winlogbeat |
+| **Detection Rules Deployed** | **25 Active / 393 Verified** | Curated from 720 upstream `elastic/detection-rules` via 30-day live retro-hunt |
 | **Local LLM Throughput** | **111.5 tokens / second** | `llama3.2:3b` on dedicated NVIDIA GTX 1070 GPU |
 | **Warm Inference Latency** | **513 ms** | Sub-second threat triage without cloud API hops |
 | **Reasoning Model Support** | Native thinking extraction | Captures chain-of-thought traces (`qwen3.5:9b`) without payload truncation |
 | **SIEM Storage Efficiency** | **Elasticsearch Index Lifecycle** | Automated single-node data streams with rollover policies |
-| **Test Suite Reliability** | **32 / 32 Passing (100%)** | Full unit test coverage across MCP tools, threat intelligence, and AI harness |
+| **Test Suite Reliability** | **37 / 37 Passing (100%)** | Full unit test coverage across MCP tools, detection curation, threat intel, and AI harness |
 
 ---
 
@@ -94,7 +96,15 @@ The repository includes turnkey, self-contained Kibana 8.17 dashboard exports in
 
 ---
 
-### 2. UniFi Firewall Traffic & Threat Map (`unifi-threat-map.ndjson`)
+### 2. Detection-as-Code & 30-Day Live Retro-Hunt Pipeline (`curate_detection_rules.py`)
+![Elastic Detection Rules Curation & Live Retro-Hunt Pipeline](docs/images/detection-rules-pipeline.png)
+- **Stage 1 — Schema & Field Capability Matrix**: Evaluates **720 upstream `elastic/detection-rules`** against live Elasticsearch `_field_caps` and active `event.code` / `winlog.channel` mappings, isolating **393 Tier 1 Ready Candidates** ($\ge$75% field match + active Event IDs).
+- **Stage 2 — 30-Day Live Dry-Run & Telemetry Liveness Proof**: Executes 12-way parallel EQL (`/_eql/search`) and KQL/Lucene dry-run queries over 30 days while verifying positive baseline event volume. Caught **3 real historical matches** (including developer `code-tunnel.exe` management, `taskkill.exe` process termination bursts, and `USBSTOR` registry peripheral tracking) while proving **378 silent candidates** are backed by live telemetry.
+- **Stage 3 — Exception Tuning & Kibana Detection Engine Deployment**: Rewrites index patterns (`winlogbeat-*`, `logs-endpoint.sysmon-*`, `logs-network.unifi-default`), injects homelab exceptions, and deploys the **[Curated Homelab Top 25 Pack](detection-rules/DEPLOYED_RULES_CATALOG.md)** directly to Kibana's Detection Engine (`POST /api/detection_engine/rules`).
+
+---
+
+### 3. UniFi Firewall Traffic & Threat Map (`unifi-threat-map.ndjson`)
 ![UniFi Firewall Traffic & Threat Map Dashboard](docs/images/dashboard-unifi-threat-map.png)
 - **Total Inbound Events & Filtered WAN Drops KPI**: Real-time visibility across **3.37M+ firewall events** and isolated external WAN drops.
 - **Drop Velocity & Threat Surges**: 15-minute bucketed XY line chart identifying port scan spikes and volumetric attacks (e.g., `198.51.100.22` / `AS43942`).
@@ -103,7 +113,7 @@ The repository includes turnkey, self-contained Kibana 8.17 dashboard exports in
 
 ---
 
-### 3. Sysmon Endpoint Process Tree & Threat Activity (`sysmon-endpoint.ndjson`)
+### 4. Sysmon Endpoint Process Tree & Threat Activity (`sysmon-endpoint.ndjson`)
 ![Sysmon Endpoint Process Tree & Threat Activity Dashboard](docs/images/dashboard-sysmon-endpoint.png)
 - **Endpoint Event ID Matrix**: Filterable visualizations for Sysmon Event IDs `1` (Process Create), `3` (Network Connect), `11` (FileCreate), `13` (Registry Value Set), and `22` (DNSEvent).
 - **Process Lineage & Anomaly Feed**: Chronological process creation tracking execution paths, parent-child relationships, and command-line parameters on monitored Windows 11 endpoints.
@@ -111,7 +121,7 @@ The repository includes turnkey, self-contained Kibana 8.17 dashboard exports in
 
 ---
 
-### 4. AI Observability & Agent Flight Recorder (`ai-observability-flight-recorder.ndjson`)
+### 5. AI Observability & Agent Flight Recorder (`ai-observability-flight-recorder.ndjson`)
 ![AI Observability & Agent Flight Recorder Dashboard](docs/images/dashboard-ai-flight-recorder.png)
 - **Autonomous Audit Feed**: Structured stream (`logs-ai.agent_tasks-default`) tracking every agent interaction, prompt, completion, latency, and token count.
 - **Inference Efficiency Metrics**: Live tracking of tokens-per-second (**111.5 tok/s** peak on `llama3.2:3b`), warm latency (**513 ms**), and model utilization across the GPU node.
@@ -121,7 +131,7 @@ The repository includes turnkey, self-contained Kibana 8.17 dashboard exports in
 
 ## 🛠️ FastMCP Server Tools Catalog
 
-The **Jarvis FastMCP Server** (`mcp-server/`) exposes 18 enterprise tools to connected AI assistants:
+The **Jarvis FastMCP Server** (`mcp-server/`) exposes 21 enterprise tools to connected AI assistants:
 
 | Category | Tool Name | Description |
 | :--- | :--- | :--- |
@@ -131,6 +141,9 @@ The **Jarvis FastMCP Server** (`mcp-server/`) exposes 18 enterprise tools to con
 | | `investigate_indicator` | Automated cross-index correlation for an IP or hostname across perimeter and endpoint logs with threat intel. |
 | | `lookup_threat_intel` | Evaluates an IP, domain, or hash against AbuseIPDB, VirusTotal, and local SIEM behavioral risk heuristics. |
 | | `triage_threat_actors` | Automated SecOps workflow: scans perimeter drop surges, enriches top attackers, and synthesizes executive AI triage via Llama 3.2. |
+| **Detection Engineering** | `scan_detection_rules` | Evaluates upstream `elastic/detection-rules` `.toml` definitions against live Elasticsearch `_field_caps` and stages compatible candidates. |
+| | `analyze_candidate_rules` | Executes 30-day live EQL/KQL retro-hunts with telemetry liveness verification and optional local LLM false-positive review. |
+| | `stage_and_deploy_detection_rule` | Rewrites rule index patterns, injects homelab exceptions, saves tuned JSON to `detection-rules/tuned/`, and deploys to Kibana's Detection Engine. |
 | **Proxmox VE** | `get_proxmox_cluster_status` | Inspects virtualization host CPU, RAM, kernel version, and status. |
 | | `get_proxmox_vms` | Lists all VMs and LXC containers with resource usage. |
 | | `get_proxmox_vm_status` | Retrieves status and real-time CPU/memory metrics for a specific VM ID. |
@@ -230,15 +243,16 @@ Output:
 platform linux -- Python 3.11+, pytest-9.1.1
 rootdir: /opt/jarvis/mcp-server
 configfile: pyproject.toml
-collected 32 items
+collected 37 items
 
-tests/test_ai_harness.py .........                                       [ 28%]
-tests/test_mcp_tools.py ...                                              [ 37%]
-tests/test_ollama_tools.py ....                                          [ 50%]
-tests/test_proxmox_tools.py .....                                        [ 65%]
+tests/test_ai_harness.py .........                                       [ 24%]
+tests/test_detection_rules.py .....                                      [ 37%]
+tests/test_mcp_tools.py ...                                              [ 45%]
+tests/test_ollama_tools.py ....                                          [ 56%]
+tests/test_proxmox_tools.py .....                                        [ 70%]
 tests/test_threat_intel.py ...........                                   [100%]
 
-============================= 32 passed in 0.91s ==============================
+============================= 37 passed in 0.98s ==============================
 ```
 
 ---
@@ -246,6 +260,10 @@ tests/test_threat_intel.py ...........                                   [100%]
 ## 📂 Repository Layout
 
 ```text
+├── detection-rules/            # Curated & tuned Elastic SIEM detection rules
+│   ├── deployed/               # 25 live Kibana Detection Engine deployment receipts
+│   ├── tuned/                  # 25 homelab-tuned rule JSON definitions
+│   └── DEPLOYED_RULES_CATALOG.md # Full catalog of deployed rules & retro-hunt metrics
 ├── docker/
 │   ├── core-siem/              # Elastic SIEM cluster definition
 │   │   ├── config/             # Logstash runtime configuration
@@ -256,7 +274,7 @@ tests/test_threat_intel.py ...........                                   [100%]
 │       ├── scripts/            # Model bootstrap scripts
 │       └── docker-compose.yml  # Ollama with NVIDIA GPU passthrough
 ├── docs/                       # Technical deployment guides & dashboard previews
-│   ├── images/                 # Live Kibana & AI triage dashboard screenshots
+│   ├── images/                 # Live Kibana, AI triage & rule curation previews
 │   ├── proxmox-gpu-passthrough.md # IOMMU, VFIO, and Docker CUDA configuration
 │   ├── sysmon-deployment.md       # Windows Sysmon & Winlogbeat deployment
 │   └── unifi-syslog-setup.md      # UniFi Dream Router remote syslog guide
@@ -264,14 +282,16 @@ tests/test_threat_intel.py ...........                                   [100%]
 │   ├── src/                    # Tool implementations and AI observability harness
 │   │   ├── ai_harness.py       # Metrics, token extraction, and SIEM audit logging
 │   │   ├── client.py           # Async Elasticsearch client manager
+│   │   ├── detection_rules.py  # 3-stage Elastic detection rule curation & dry-run engine
 │   │   ├── ollama.py           # Async Ollama client manager
 │   │   ├── proxmox.py          # Async Proxmox VE REST client manager
-│   │   ├── server.py           # 18 registered FastMCP tools
+│   │   ├── server.py           # 21 registered FastMCP tools
 │   │   └── threat_intel.py     # Multi-feed threat intel & behavioral risk engine
-│   ├── tests/                  # Pytest automated test suite (32 unit tests)
+│   ├── tests/                  # Pytest automated test suite (37 unit tests)
 │   ├── Dockerfile              # Containerized MCP server
 │   └── pyproject.toml          # Project dependencies and tool settings
-├── scripts/                    # Live verification & SecOps triage runner
+├── scripts/                    # Live verification, rule curation & SecOps runners
+│   ├── curate_detection_rules.py  # 3-stage CLI for rule scanning, dry-run & deployment
 │   └── test_threat_intel_live.py  # End-to-end threat intel & AI triage demo script
 ├── LICENSE                     # MIT License
 └── README.md                   # Platform documentation

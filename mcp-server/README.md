@@ -4,7 +4,7 @@ An asynchronous FastMCP server that connects AI assistants and multi-agent orche
 
 ---
 
-## 🛠️ Available MCP Tools (18 Tools)
+## 🛠️ Available MCP Tools (21 Tools)
 
 ### 🛡️ Elastic SIEM, Threat Intelligence & Network Telemetry
 | Tool Name | Parameters | Description |
@@ -15,6 +15,13 @@ An asynchronous FastMCP server that connects AI assistants and multi-agent orche
 | `investigate_indicator` | `indicator`, `hours_back` | Cross-correlates an IP, domain, or hash across UniFi logs and Sysmon events with automated threat intelligence scoring. |
 | `lookup_threat_intel` | `indicator`, `hours_back` | Evaluates an IP, domain, or hash against AbuseIPDB, VirusTotal, and local behavioral risk scoring heuristics. |
 | `triage_threat_actors` | `hours_back`, `top_n`, `generate_ai_summary` | Autonomous SecOps workflow: scans perimeter drop surges, enriches top attackers, and synthesizes executive AI triage via Llama 3.2. |
+
+### 🎯 Detection Engineering & Rule Curation (`elastic/detection-rules`)
+| Tool Name | Parameters | Description |
+| :--- | :--- | :--- |
+| `scan_detection_rules` | `categories`, `min_match_ratio`, `copy_candidates` | Scans upstream `elastic/detection-rules` `.toml` files against live Elasticsearch `_field_caps` and stages compatible candidates into `detection-rules/candidates/`. |
+| `analyze_candidate_rules` | `max_rules`, `hours_back`, `category_filter`, `only_hits`, `run_ai_review` | Executes 30-day live EQL/KQL retro-hunts with telemetry liveness verification and optional local LLM false-positive analysis. |
+| `stage_and_deploy_detection_rule` | `rule_file`, `deploy_to_kibana`, `enable_rule`, `custom_exception_query` | Rewrites rule index patterns, injects homelab exceptions, saves tuned JSON to `detection-rules/tuned/`, and deploys to Kibana's Detection Engine. |
 
 ### 🖥️ Proxmox VE Hypervisor & Infrastructure
 | Tool Name | Parameters | Description |

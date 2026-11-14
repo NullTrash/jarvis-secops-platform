@@ -1,0 +1,80 @@
+{
+  "rule_id": "jarvis-0859355c-0f08-4b43-8ff5-7d2a4789fc08",
+  "name": "[Jarvis] First Time Seen Removable Device",
+  "description": "Identifies newly seen removable devices by device friendly name using registry modification events. While this activity\nis not inherently malicious, analysts can use those events to aid monitoring for data exfiltration over those devices.\n",
+  "risk_score": 21,
+  "severity": "low",
+  "type": "new_terms",
+  "language": "kuery",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "event.category:\"registry\" and host.os.type:\"windows\" and registry.value:\"FriendlyName\" and registry.path:*USBSTOR*",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Platform: Windows",
+    "Data Source: Elastic Endgame",
+    "Data Source: Sysmon",
+    "Rule Type: New Terms",
+    "Data Source: Microsoft Defender XDR",
+    "Performance: Normal",
+    "Jarvis-Curated",
+    "Tactic: Exfiltration",
+    "Domain: Endpoint",
+    "Data Source: SentinelOne",
+    "Resources: Investigation Guide",
+    "Homelab-Tuned",
+    "Tactic: Initial Access",
+    "OS: Windows",
+    "Data Source: Elastic Defend",
+    "Use Case: Threat Detection",
+    "Noise: Medium"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1091",
+          "name": "Replication Through Removable Media",
+          "reference": "https://attack.mitre.org/techniques/T1091/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0001",
+        "name": "Initial Access",
+        "reference": "https://attack.mitre.org/tactics/TA0001/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1052",
+          "name": "Exfiltration Over Physical Medium",
+          "reference": "https://attack.mitre.org/techniques/T1052/",
+          "subtechnique": [
+            {
+              "id": "T1052.001",
+              "name": "Exfiltration over USB",
+              "reference": "https://attack.mitre.org/techniques/T1052/001/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0010",
+        "name": "Exfiltration",
+        "reference": "https://attack.mitre.org/tactics/TA0010/"
+      }
+    }
+  ],
+  "new_terms_fields": [
+    "registry.path"
+  ],
+  "history_window_start": "now-7d"
+}

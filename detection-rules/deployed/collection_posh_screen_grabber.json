@@ -1,0 +1,73 @@
+{
+  "rule_id": "jarvis-959a7353-1129-4aa7-9084-30746b256a70",
+  "name": "[Jarvis] PowerShell Suspicious Script with Screenshot Capabilities",
+  "description": "Detects PowerShell script block content that uses CopyFromScreen with .NET bitmap classes to capture screenshots.\nAttackers use screen capture to collect on-screen information and credentials.\n",
+  "risk_score": 73,
+  "severity": "high",
+  "type": "query",
+  "language": "kuery",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "event.category:process and host.os.type:windows and\n  powershell.file.script_block_text : (\n    CopyFromScreen and\n    (\"System.Drawing.Bitmap\" or \"Drawing.Bitmap\")\n  ) and not user.id : \"S-1-5-18\"",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Platform: Windows",
+    "Threat: Script-Based Execution",
+    "Performance: Normal",
+    "Data Source: PowerShell Logs",
+    "Jarvis-Curated",
+    "Domain: Endpoint",
+    "Resources: Investigation Guide",
+    "Profile: Recommended",
+    "Tactic: Collection",
+    "Noise: Low",
+    "Homelab-Tuned",
+    "OS: Windows",
+    "Rule Type: Custom Query (KQL)",
+    "Use Case: Threat Detection"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1113",
+          "name": "Screen Capture",
+          "reference": "https://attack.mitre.org/techniques/T1113/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0009",
+        "name": "Collection",
+        "reference": "https://attack.mitre.org/tactics/TA0009/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1059",
+          "name": "Command and Scripting Interpreter",
+          "reference": "https://attack.mitre.org/techniques/T1059/",
+          "subtechnique": [
+            {
+              "id": "T1059.001",
+              "name": "PowerShell",
+              "reference": "https://attack.mitre.org/techniques/T1059/001/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0002",
+        "name": "Execution",
+        "reference": "https://attack.mitre.org/tactics/TA0002/"
+      }
+    }
+  ]
+}

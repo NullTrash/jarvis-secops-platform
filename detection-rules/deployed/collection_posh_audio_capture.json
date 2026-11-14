@@ -1,0 +1,93 @@
+{
+  "rule_id": "jarvis-2f2f4939-0b34-40c2-a0a3-844eb7889f43",
+  "name": "[Jarvis] PowerShell Suspicious Script with Audio Capture Capabilities",
+  "description": "Detects PowerShell script block content that invokes microphone capture routines or WinMM audio APIs.\nAdversaries may use audio recording to surveil users or capture sensitive conversations for theft or extortion.\n",
+  "risk_score": 73,
+  "severity": "high",
+  "type": "query",
+  "language": "kuery",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "event.category:process and host.os.type:windows and\n  powershell.file.script_block_text : (\n    \"Get-MicrophoneAudio\" or\n    (\"Get-AudioDevice\" and \"Recording\" and \"Set-AudioDevice\") or\n    \"WindowsAudioDevice-Powershell-Cmdlet\" or\n    (\n      \"winmm.dll\" and\n      (\n        \"waveInGetNumDevs\" or \"waveInOpen\" or \"waveInStart\" or\n        \"mciSendString\" or \"mciSendStringA\" or \"mciSendStringW\"\n      )\n    )\n  ) and\n  not powershell.file.script_block_text : (\n    \"sentinelbreakpoints\" and \"Set-PSBreakpoint\" and \"PowerSploitIndicators\"\n  )",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Platform: Windows",
+    "Threat: Script-Based Execution",
+    "Performance: Normal",
+    "Data Source: PowerShell Logs",
+    "Jarvis-Curated",
+    "Domain: Endpoint",
+    "Resources: Investigation Guide",
+    "Profile: Recommended",
+    "Tactic: Collection",
+    "Noise: Low",
+    "Homelab-Tuned",
+    "OS: Windows",
+    "Rule Type: Custom Query (KQL)",
+    "Use Case: Threat Detection"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1123",
+          "name": "Audio Capture",
+          "reference": "https://attack.mitre.org/techniques/T1123/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0009",
+        "name": "Collection",
+        "reference": "https://attack.mitre.org/tactics/TA0009/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1059",
+          "name": "Command and Scripting Interpreter",
+          "reference": "https://attack.mitre.org/techniques/T1059/",
+          "subtechnique": [
+            {
+              "id": "T1059.001",
+              "name": "PowerShell",
+              "reference": "https://attack.mitre.org/techniques/T1059/001/"
+            }
+          ]
+        },
+        {
+          "id": "T1106",
+          "name": "Native API",
+          "reference": "https://attack.mitre.org/techniques/T1106/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0002",
+        "name": "Execution",
+        "reference": "https://attack.mitre.org/tactics/TA0002/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1120",
+          "name": "Peripheral Device Discovery",
+          "reference": "https://attack.mitre.org/techniques/T1120/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0007",
+        "name": "Discovery",
+        "reference": "https://attack.mitre.org/tactics/TA0007/"
+      }
+    }
+  ]
+}

@@ -12,6 +12,9 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+elasticpublic/
+detection-rules/candidates/
+detection-rules/analyzed/
 export/
 downloads/
 eggs/

@@ -1,0 +1,97 @@
+{
+  "rule_id": "jarvis-d8b2f85a-cf1c-40fc-acf0-bb5d588a8ea6",
+  "name": "[Jarvis] Potential REMCOS Trojan Execution",
+  "description": "Identifies known file and registry traces of the REMCOS Remote Access Trojan, including log files, persistence values, and cleanup artifacts. Adversaries use Remcos to maintain persistent remote access to compromised hosts.\n",
+  "risk_score": 73,
+  "severity": "high",
+  "type": "eql",
+  "language": "eql",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "any where host.os.type == \"windows\" and\n(\n (event.category == \"file\" and event.type == \"deletion\" and file.path like \"?:\\\\Users\\\\*\\\\AppData\\\\Local\\\\Temp\\\\TH????.tmp\") or\n\n (event.category == \"file\" and file.path : \"?:\\\\Users\\\\*\\\\AppData\\\\Roaming\\\\remcos\\\\logs.dat\") or\n\n (event.category == \"registry\" and\n  registry.value : (\"Remcos\", \"Rmc-??????\", \"licence\") and\n  registry.path : (\n      \"*\\\\Windows\\\\CurrentVersion\\\\Run\\\\Remcos\",\n      \"*\\\\Windows\\\\CurrentVersion\\\\Run\\\\Rmc-??????\",\n      \"*\\\\SOFTWARE\\\\Remcos-*\\\\licence\",\n      \"*\\\\Software\\\\Rmc-??????\\\\licence\"\n  )\n )\n)",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Platform: Windows",
+    "Data Source: Elastic Endgame",
+    "Data Source: Sysmon",
+    "Data Source: Microsoft Defender XDR",
+    "Performance: Normal",
+    "Jarvis-Curated",
+    "Domain: Endpoint",
+    "Resources: Investigation Guide",
+    "Data Source: SentinelOne",
+    "Tactic: Command and Control",
+    "Homelab-Tuned",
+    "OS: Windows",
+    "Data Source: Elastic Defend",
+    "Use Case: Threat Detection",
+    "Rule Type: Event Correlation (EQL)",
+    "Noise: Medium"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1219",
+          "name": "Remote Access Tools",
+          "reference": "https://attack.mitre.org/techniques/T1219/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0011",
+        "name": "Command and Control",
+        "reference": "https://attack.mitre.org/tactics/TA0011/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1070",
+          "name": "Indicator Removal",
+          "reference": "https://attack.mitre.org/techniques/T1070/",
+          "subtechnique": [
+            {
+              "id": "T1070.004",
+              "name": "File Deletion",
+              "reference": "https://attack.mitre.org/techniques/T1070/004/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0005",
+        "name": "Defense Evasion",
+        "reference": "https://attack.mitre.org/tactics/TA0005/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1547",
+          "name": "Boot or Logon Autostart Execution",
+          "reference": "https://attack.mitre.org/techniques/T1547/",
+          "subtechnique": [
+            {
+              "id": "T1547.001",
+              "name": "Registry Run Keys / Startup Folder",
+              "reference": "https://attack.mitre.org/techniques/T1547/001/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0003",
+        "name": "Persistence",
+        "reference": "https://attack.mitre.org/tactics/TA0003/"
+      }
+    }
+  ]
+}

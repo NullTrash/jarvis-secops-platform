@@ -1,0 +1,85 @@
+{
+  "rule_id": "jarvis-e94262f2-c1e9-4d3f-a907-aeab16712e1a",
+  "name": "[Jarvis] Unusual Executable File Creation by a System Critical Process",
+  "description": "Identifies an unexpected executable file being created or modified by a Windows system critical process, which may\nindicate activity related to remote code execution or other forms of exploitation.\n",
+  "risk_score": 73,
+  "severity": "high",
+  "type": "eql",
+  "language": "eql",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "file where host.os.type == \"windows\" and event.type != \"deletion\" and\n  file.extension : (\"exe\", \"dll\") and\n  process.name : (\"smss.exe\",\n                  \"autochk.exe\",\n                  \"csrss.exe\",\n                  \"wininit.exe\",\n                  \"services.exe\",\n                  \"lsass.exe\",\n                  \"winlogon.exe\",\n                  \"userinit.exe\",\n                  \"LogonUI.exe\") and\n  not (\n    process.name : \"smss.exe\" and\n    file.path : (\n      \"?:\\\\Windows\\\\System32\\\\wpbbin.exe\",\n      \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\System32\\\\wpbbin.exe\"\n    )\n  ) and\n  not (\n    process.name : \"lsass.exe\" and\n    file.path : (\n      \"?:\\\\Windows\\\\System32\\\\eac_usermode_*.dll\",\n      \"\\\\Device\\\\HarddiskVolume*\\\\Windows\\\\System32\\\\eac_usermode_*.dll\"\n    )\n  )",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Platform: Windows",
+    "Tactic: Execution",
+    "Data Source: Elastic Endgame",
+    "Data Source: Sysmon",
+    "Data Source: Microsoft Defender XDR",
+    "Performance: Normal",
+    "Jarvis-Curated",
+    "Domain: Endpoint",
+    "Resources: Investigation Guide",
+    "Data Source: SentinelOne",
+    "Data Source: Crowdstrike",
+    "Homelab-Tuned",
+    "OS: Windows",
+    "Data Source: Elastic Defend",
+    "Use Case: Threat Detection",
+    "Tactic: Defense Evasion",
+    "Rule Type: Event Correlation (EQL)",
+    "Noise: Medium"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1211",
+          "name": "Exploitation for Defense Evasion",
+          "reference": "https://attack.mitre.org/techniques/T1211/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0005",
+        "name": "Defense Evasion",
+        "reference": "https://attack.mitre.org/tactics/TA0005/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1203",
+          "name": "Exploitation for Client Execution",
+          "reference": "https://attack.mitre.org/techniques/T1203/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0002",
+        "name": "Execution",
+        "reference": "https://attack.mitre.org/tactics/TA0002/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1068",
+          "name": "Exploitation for Privilege Escalation",
+          "reference": "https://attack.mitre.org/techniques/T1068/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0004",
+        "name": "Privilege Escalation",
+        "reference": "https://attack.mitre.org/tactics/TA0004/"
+      }
+    }
+  ]
+}

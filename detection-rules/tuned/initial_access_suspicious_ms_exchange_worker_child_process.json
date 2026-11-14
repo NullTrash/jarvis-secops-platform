@@ -1,0 +1,104 @@
+{
+  "rule_id": "jarvis-f81ee52c-297e-46d9-9205-07e66931df26",
+  "name": "[Jarvis] Microsoft Exchange Worker Spawning Suspicious Processes",
+  "description": "Identifies suspicious processes being spawned by the Microsoft Exchange Server worker process (w3wp). This activity may\nindicate exploitation activity or access to an existing web shell backdoor.\n",
+  "risk_score": 73,
+  "severity": "high",
+  "type": "eql",
+  "language": "eql",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "process where host.os.type == \"windows\" and event.type == \"start\" and\n  process.parent.name : \"w3wp.exe\" and process.parent.args : \"MSExchange*AppPool\" and\n  (\n    (process.name : (\"cmd.exe\", \"powershell.exe\", \"pwsh.exe\", \"powershell_ise.exe\") or\n    ?process.pe.original_file_name in (\"Cmd.Exe\", \"PowerShell.EXE\", \"pwsh.dll\", \"powershell_ise.EXE\"))\n  )",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Threat: Web Shell",
+    "Platform: Windows",
+    "Data Source: Elastic Endgame",
+    "Data Source: Sysmon",
+    "Data Source: Microsoft Defender XDR",
+    "Performance: Normal",
+    "Jarvis-Curated",
+    "Domain: Endpoint",
+    "Data Source: SentinelOne",
+    "Resources: Investigation Guide",
+    "Profile: Recommended",
+    "Homelab-Tuned",
+    "Tactic: Initial Access",
+    "OS: Windows",
+    "Data Source: Elastic Defend",
+    "Use Case: Threat Detection",
+    "Rule Type: Event Correlation (EQL)",
+    "Noise: Medium"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1190",
+          "name": "Exploit Public-Facing Application",
+          "reference": "https://attack.mitre.org/techniques/T1190/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0001",
+        "name": "Initial Access",
+        "reference": "https://attack.mitre.org/tactics/TA0001/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1059",
+          "name": "Command and Scripting Interpreter",
+          "reference": "https://attack.mitre.org/techniques/T1059/",
+          "subtechnique": [
+            {
+              "id": "T1059.001",
+              "name": "PowerShell",
+              "reference": "https://attack.mitre.org/techniques/T1059/001/"
+            },
+            {
+              "id": "T1059.003",
+              "name": "Windows Command Shell",
+              "reference": "https://attack.mitre.org/techniques/T1059/003/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0002",
+        "name": "Execution",
+        "reference": "https://attack.mitre.org/tactics/TA0002/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1505",
+          "name": "Server Software Component",
+          "reference": "https://attack.mitre.org/techniques/T1505/",
+          "subtechnique": [
+            {
+              "id": "T1505.003",
+              "name": "Web Shell",
+              "reference": "https://attack.mitre.org/techniques/T1505/003/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0003",
+        "name": "Persistence",
+        "reference": "https://attack.mitre.org/tactics/TA0003/"
+      }
+    }
+  ]
+}

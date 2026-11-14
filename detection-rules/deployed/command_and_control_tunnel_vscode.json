@@ -1,0 +1,57 @@
+{
+  "rule_id": "jarvis-0b96dfd8-5b8c-4485-9a1c-69ff7839786a",
+  "name": "[Jarvis] Attempt to Establish VScode Remote Tunnel",
+  "description": "Detects the execution of the VScode portable binary with the tunnel command line option indicating an attempt to\nestablish a remote tunnel session to Github or a remote VScode instance.\n",
+  "risk_score": 47,
+  "severity": "medium",
+  "type": "eql",
+  "language": "eql",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "process where host.os.type == \"windows\" and event.type == \"start\" and\n  process.args : \"tunnel\" and\n  (process.args : \"--accept-server-license-terms\" or\n   process.name : \"code*.exe\" or\n   ?process.code_signature.subject_name : \"Microsoft Corporation\" or\n   process.executable : (\"?:\\\\ProgramData\\\\*\", \"?:\\\\Users\\\\Public\\\\*\", \"?:\\\\windows\\\\debug\\\\*\", \n                         \"\\\\Device\\\\HarddiskVolume*\\\\Users\\\\Public\\\\*\", \"\\\\Device\\\\HarddiskVolume*\\\\ProgramData\\\\*\",  \"\\\\Device\\\\HarddiskVolume*\\\\windows\\\\debug\\\\*\")) and\n  not (process.name == \"code-tunnel.exe\" and process.args == \"status\" and process.parent.name == \"Code.exe\")\n  and not process.args : \"kill\"",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Performance: Normal",
+    "Data Source: Windows Security Event Logs",
+    "Data Source: Crowdstrike",
+    "Rule Type: Event Correlation (EQL)",
+    "Platform: Windows",
+    "Data Source: Elastic Endgame",
+    "Jarvis-Curated",
+    "Domain: Endpoint",
+    "Tactic: Command and Control",
+    "Homelab-Tuned",
+    "Noise: Medium",
+    "Data Source: SentinelOne",
+    "Profile: Recommended",
+    "Threat: Protocol Tunneling",
+    "OS: Windows",
+    "Use Case: Threat Detection",
+    "Data Source: Sysmon",
+    "Data Source: Microsoft Defender XDR",
+    "Resources: Investigation Guide",
+    "Data Source: Elastic Defend"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1219",
+          "name": "Remote Access Tools",
+          "reference": "https://attack.mitre.org/techniques/T1219/"
+        }
+      ],
+      "tactic": {
+        "id": "TA0011",
+        "name": "Command and Control",
+        "reference": "https://attack.mitre.org/tactics/TA0011/"
+      }
+    }
+  ]
+}

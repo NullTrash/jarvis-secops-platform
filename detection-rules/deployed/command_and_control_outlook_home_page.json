@@ -1,0 +1,89 @@
+{
+  "rule_id": "jarvis-ac5a2759-5c34-440a-b0c4-51fe674611d6",
+  "name": "[Jarvis] Outlook Home Page Registry Modification",
+  "description": "Identifies modifications in registry keys associated with abuse of the Outlook Home Page functionality for command and\ncontrol or persistence.\n",
+  "risk_score": 73,
+  "severity": "high",
+  "type": "eql",
+  "language": "eql",
+  "index": [
+    "winlogbeat-*",
+    "logs-endpoint.sysmon-*",
+    "logs-network.unifi-default"
+  ],
+  "query": "registry where host.os.type == \"windows\" and event.action != \"deletion\" and registry.value : \"URL\" and\n    registry.path : (\n        \"*\\\\SOFTWARE\\\\Microsoft\\\\Office\\\\*\\\\Outlook\\\\Webview\\\\*\",\n        \"*\\\\SOFTWARE\\\\Microsoft\\\\Office\\\\*\\\\Outlook\\\\Today\\\\*\"\n    ) and registry.data.strings : (\"*://*\", \"*:\\\\*\", \"\\\\\\\\*\\\\*\")",
+  "from": "now-15m",
+  "interval": "10m",
+  "enabled": true,
+  "tags": [
+    "Platform: Windows",
+    "Data Source: Elastic Endgame",
+    "Data Source: Sysmon",
+    "Data Source: Microsoft Defender XDR",
+    "Performance: Normal",
+    "Jarvis-Curated",
+    "Domain: Endpoint",
+    "Data Source: SentinelOne",
+    "Resources: Investigation Guide",
+    "Data Source: Crowdstrike",
+    "Tactic: Command and Control",
+    "Tactic: Persistence",
+    "Noise: Low",
+    "Homelab-Tuned",
+    "OS: Windows",
+    "Data Source: Elastic Defend",
+    "Use Case: Threat Detection",
+    "Rule Type: Event Correlation (EQL)"
+  ],
+  "threat": [
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1071",
+          "name": "Application Layer Protocol",
+          "reference": "https://attack.mitre.org/techniques/T1071/",
+          "subtechnique": [
+            {
+              "id": "T1071.001",
+              "name": "Web Protocols",
+              "reference": "https://attack.mitre.org/techniques/T1071/001/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0011",
+        "name": "Command and Control",
+        "reference": "https://attack.mitre.org/tactics/TA0011/"
+      }
+    },
+    {
+      "framework": "MITRE ATT&CK",
+      "technique": [
+        {
+          "id": "T1112",
+          "name": "Modify Registry",
+          "reference": "https://attack.mitre.org/techniques/T1112/"
+        },
+        {
+          "id": "T1137",
+          "name": "Office Application Startup",
+          "reference": "https://attack.mitre.org/techniques/T1137/",
+          "subtechnique": [
+            {
+              "id": "T1137.004",
+              "name": "Outlook Home Page",
+              "reference": "https://attack.mitre.org/techniques/T1137/004/"
+            }
+          ]
+        }
+      ],
+      "tactic": {
+        "id": "TA0003",
+        "name": "Persistence",
+        "reference": "https://attack.mitre.org/tactics/TA0003/"
+      }
+    }
+  ]
+}

@@ -15,6 +15,7 @@ from src.proxmox import ProxmoxClientManager
 from src.ollama import OllamaClientManager
 from src.ai_harness import AITaskHarness
 from src.threat_intel import ThreatIntelManager, INTERNAL_PRIVATE_CIDRS
+from src.detection_rules import DetectionRuleCurator
 
 # Initialize FastMCP Server
 mcp = FastMCP("jarvis-elastic-siem")
@@ -27,6 +28,7 @@ ai_harness = AITaskHarness(
     proxmox_manager=proxmox_manager,
 )
 threat_intel = ThreatIntelManager(es_manager=es_manager)
+rule_curator = DetectionRuleCurator(es_manager=es_manager, ai_harness=ai_harness)
 
 
 @mcp.tool(
@@ -640,6 +642,94 @@ async def get_ai_observability_summary(
 async def record_system_health() -> Dict[str, Any]:
     """Record an infrastructure telemetry snapshot (GPU VRAM, active models, Proxmox health)."""
     return await ai_harness.record_infrastructure_snapshot()
+
+
+@mcp.tool(
+    name="scan_detection_rules",
+    description="Stage 1 Detection Engineering: Scan local elastic/detection-rules repository against live Elasticsearch field capabilities and Event IDs, copying compatible rules into detection-rules/candidates/.",
+)
+async def scan_detection_rules(
+    directories: Annotated[
+        Optional[List[str]],
+        Field(description="Rule directories to scan (default: ['windows', 'network', 'cross-platform', 'threat_intel'])"),
+    ] = None,
+    copy_tier_1_only: Annotated[
+        bool,
+        Field(description="If True, only copy Tier 1 (>=75% field coverage) rules; if False, also copy Tier 2 partial coverage rules"),
+    ] = False,
+) -> Dict[str, Any]:
+    """Scan upstream Elastic detection rules for compatibility with homelab telemetry."""
+    return await rule_curator.scan_upstream_rules(
+        directories=directories,
+        copy_tier_1_only=copy_tier_1_only,
+    )
+
+
+@mcp.tool(
+    name="analyze_candidate_rules",
+    description="Stage 2 Detection Engineering: Run live Elasticsearch EQL/KQL dry-runs on candidate rules, verify telemetry liveness (solving the 0-hit ambiguity), identify noisy processes, and score Fidelity, Noise, Severity, and Urgency.",
+)
+async def analyze_candidate_rules(
+    tactic: Annotated[
+        Optional[str],
+        Field(description="Optional MITRE ATT&CK tactic filter (e.g., 'Persistence', 'Credential Access', 'Execution', 'Initial Access')"),
+    ] = None,
+    category: Annotated[
+        Optional[str],
+        Field(description="Optional source category filter ('windows', 'network', 'cross-platform', 'threat_intel')"),
+    ] = None,
+    severity: Annotated[
+        Optional[str],
+        Field(description="Optional upstream severity filter ('critical', 'high', 'medium', 'low')"),
+    ] = None,
+    limit: Annotated[
+        int,
+        Field(description="Maximum number of candidate rules to dry-run in this batch"),
+    ] = 25,
+    hours_back: Annotated[
+        int,
+        Field(description="Time window in hours for historical dry-run search"),
+    ] = 168,
+) -> Dict[str, Any]:
+    """Execute live dry-run analysis and liveness verification on candidate detection rules."""
+    return await rule_curator.analyze_candidates(
+        tactic=tactic,
+        category=category,
+        severity=severity,
+        limit=limit,
+        hours_back=hours_back,
+    )
+
+
+@mcp.tool(
+    name="stage_and_deploy_detection_rule",
+    description="Stage 3 Detection Engineering: Customize a candidate rule with Jarvis index patterns and homelab exception filters into detection-rules/tuned/, and optionally deploy to Kibana's Detection Engine API.",
+)
+async def stage_and_deploy_detection_rule(
+    file_name: Annotated[
+        str,
+        Field(description="Rule TOML file name (e.g. 'persistence_scheduled_task_creation.toml')"),
+    ],
+    custom_exceptions: Annotated[
+        Optional[List[str]],
+        Field(description="Optional list of EQL/KQL exception clauses (e.g. ['not process.executable : \"C:\\\\Program Files\\\\Git\\\\*\"'])"),
+    ] = None,
+    override_severity: Annotated[
+        Optional[str],
+        Field(description="Optional severity override ('low', 'medium', 'high', 'critical')"),
+    ] = None,
+    deploy_to_kibana: Annotated[
+        bool,
+        Field(description="If True, push the tuned rule directly to Kibana's /api/detection_engine/rules API"),
+    ] = False,
+) -> Dict[str, Any]:
+    """Stage a tuned Jarvis detection rule and optionally deploy it to Kibana."""
+    return await rule_curator.stage_and_deploy_rule(
+        file_name=file_name,
+        custom_exceptions=custom_exceptions,
+        override_severity=override_severity,
+        deploy_to_kibana=deploy_to_kibana,
+    )
 
 
 if __name__ == "__main__":
