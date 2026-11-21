@@ -4,7 +4,7 @@ An asynchronous FastMCP server that connects AI assistants and multi-agent orche
 
 ---
 
-## 🛠️ Available MCP Tools (21 Tools)
+## 🛠️ Available MCP Tools (26 Tools)
 
 ### 🛡️ Elastic SIEM, Threat Intelligence & Network Telemetry
 | Tool Name | Parameters | Description |
@@ -15,6 +15,11 @@ An asynchronous FastMCP server that connects AI assistants and multi-agent orche
 | `investigate_indicator` | `indicator`, `hours_back` | Cross-correlates an IP, domain, or hash across UniFi logs and Sysmon events with automated threat intelligence scoring. |
 | `lookup_threat_intel` | `indicator`, `hours_back` | Evaluates an IP, domain, or hash against AbuseIPDB, VirusTotal, and local behavioral risk scoring heuristics. |
 | `triage_threat_actors` | `hours_back`, `top_n`, `generate_ai_summary` | Autonomous SecOps workflow: scans perimeter drop surges, enriches top attackers, and synthesizes executive AI triage via Llama 3.2. |
+| `sync_asset_inventory` | `run_active_scan`, `extra_ips` | Discovers and syncs homelab assets (UniFi Dream Router, Proxmox VE, Windows 11 Sysmon endpoint, Elastic SIEM, Ollama GPU) with active LAN port/banner probing into `logs-threat_intel.assets-default`. |
+| `ingest_threat_intel_feeds` | `feed_set`, `include_abuse_ch`, `lookback_days` | Ingests bulk IOCs (abuse.ch Feodo Tracker, URLhaus, MalwareBazaar) + 40+ curated CTI RSS feeds, scores environment relevance, and runs a 90-day retroactive SIEM hunt across UniFi and Sysmon logs. |
+| `scan_asset_vulnerabilities` | `query_nvd`, `generate_ai_advisory`, `max_per_asset` | Correlates inventoried assets against CISA Known Exploited Vulnerabilities (KEV) and NIST NVD CVE API v2, indexing prioritized CVEs and local GPU AI remediation guidance into `logs-threat_intel.vulnerabilities-default`. |
+| `check_identity_exposure` | `names`, `emails`, `usernames`, `check_wan_footprint` | Scans free OSINT, infostealer logs (HudsonRock Cavalier), breach databases (XposedOrNot), GitHub public commits, and Shodan InternetDB WAN footprint into `logs-threat_intel.identity-default`. |
+| `update_intel_disposition` | `item_id`, `disposition`, `index_name`, `owner`, `note`, `case_url` | Persists analyst review disposition (`unreviewed`, `actioned`, `confirmed`, `false_positive`, `expired`, `revoked`) on an indicator, CVE, or identity alert. |
 
 ### 🎯 Detection Engineering & Rule Curation (`elastic/detection-rules`)
 | Tool Name | Parameters | Description |

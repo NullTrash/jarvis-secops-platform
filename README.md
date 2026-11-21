@@ -4,12 +4,13 @@
 [![FastMCP](https://img.shields.io/badge/FastMCP-0.4.0+-4B32C3?style=for-the-badge&logo=python&logoColor=white)](https://github.com/jlowin/fastmcp)
 [![Proxmox VE](https://img.shields.io/badge/Proxmox_VE-Virtualization-E57000?style=for-the-badge&logo=proxmox&logoColor=white)](https://www.proxmox.com/)
 [![Ollama GPU](https://img.shields.io/badge/Ollama_GPU-Local_Inference-black?style=for-the-badge&logo=nvidia&logoColor=white)](https://ollama.ai/)
-[![Python Tests](https://img.shields.io/badge/Pytest-37_Passed_(100%25)-success?style=for-the-badge&logo=pytest&logoColor=white)](mcp-server/tests)
+[![Built in Antigravity](https://img.shields.io/badge/Built_in-Google_Antigravity-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://idx.dev/)
+[![Python Tests](https://img.shields.io/badge/Pytest-44_Passed_(100%25)-success?style=for-the-badge&logo=pytest&logoColor=white)](mcp-server/tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-An enterprise-grade, hybrid Security Operations (SecOps) platform that unifies perimeter firewall intelligence, endpoint telemetry, virtualization observability, and agentic AI incident triage into an air-gapped, zero-cloud architecture.
+An enterprise-grade, hybrid Security Operations (SecOps) platform that unifies perimeter firewall intelligence, endpoint telemetry, virtualization observability, threat intelligence & asset vulnerability management, and agentic AI incident triage into an air-gapped, zero-cloud architecture.
 
-Built on **Elasticsearch 8.17**, **Logstash**, **Kibana**, **Ubiquiti UniFi**, **Microsoft Sysmon**, **Proxmox VE**, and **FastMCP** with dedicated local GPU acceleration.
+Built within **Google Antigravity** on **Elasticsearch 8.17**, **Logstash**, **Kibana**, **Ubiquiti UniFi**, **Microsoft Sysmon**, **Proxmox VE**, and **FastMCP** with dedicated local GPU acceleration.
 
 ---
 
@@ -141,6 +142,11 @@ The **Jarvis FastMCP Server** (`mcp-server/`) exposes 21 enterprise tools to con
 | | `investigate_indicator` | Automated cross-index correlation for an IP or hostname across perimeter and endpoint logs with threat intel. |
 | | `lookup_threat_intel` | Evaluates an IP, domain, or hash against AbuseIPDB, VirusTotal, and local SIEM behavioral risk heuristics. |
 | | `triage_threat_actors` | Automated SecOps workflow: scans perimeter drop surges, enriches top attackers, and synthesizes executive AI triage via Llama 3.2. |
+| | `sync_asset_inventory` | Discovers and syncs homelab assets (UniFi Dream Router, Proxmox VE, Windows 11, Elastic SIEM) with active LAN port probing into `logs-threat_intel.assets-default`. |
+| | `ingest_threat_intel_feeds` | Ingests abuse.ch bulk IOCs + 40+ curated CTI RSS feeds, scores environment relevance, and runs a 90-day retroactive SIEM hunt. |
+| | `scan_asset_vulnerabilities` | Correlates inventoried assets against CISA KEV and NIST NVD CVE API v2 with local GPU AI remediation advisories. |
+| | `check_identity_exposure` | Scans HudsonRock Cavalier (infostealers), XposedOrNot (breaches), GitHub commits, and Shodan InternetDB WAN footprint. |
+| | `update_intel_disposition` | Updates analyst review disposition (`actioned`, `confirmed`, `false_positive`, etc.) on any threat intel record. |
 | **Detection Engineering** | `scan_detection_rules` | Evaluates upstream `elastic/detection-rules` `.toml` definitions against live Elasticsearch `_field_caps` and stages compatible candidates. |
 | | `analyze_candidate_rules` | Executes 30-day live EQL/KQL retro-hunts with telemetry liveness verification and optional local LLM false-positive review. |
 | | `stage_and_deploy_detection_rule` | Rewrites rule index patterns, injects homelab exceptions, saves tuned JSON to `detection-rules/tuned/`, and deploys to Kibana's Detection Engine. |
@@ -279,23 +285,42 @@ tests/test_threat_intel.py ...........                                   [100%]
 │   ├── sysmon-deployment.md       # Windows Sysmon & Winlogbeat deployment
 │   └── unifi-syslog-setup.md      # UniFi Dream Router remote syslog guide
 ├── mcp-server/                 # Python FastMCP server
+│   ├── config/                 # Environment relevance profile & baseline asset inventory
+│   │   └── environment-profile.json
 │   ├── src/                    # Tool implementations and AI observability harness
 │   │   ├── ai_harness.py       # Metrics, token extraction, and SIEM audit logging
+│   │   ├── asset_inventory.py  # Hybrid asset discovery (Proxmox, SIEM, active LAN scan)
 │   │   ├── client.py           # Async Elasticsearch client manager
 │   │   ├── detection_rules.py  # 3-stage Elastic detection rule curation & dry-run engine
+│   │   ├── identity_osint.py   # Personal identity, infostealer & breach OSINT monitor
 │   │   ├── ollama.py           # Async Ollama client manager
 │   │   ├── proxmox.py          # Async Proxmox VE REST client manager
-│   │   ├── server.py           # 21 registered FastMCP tools
-│   │   └── threat_intel.py     # Multi-feed threat intel & behavioral risk engine
-│   ├── tests/                  # Pytest automated test suite (37 unit tests)
+│   │   ├── server.py           # 26 registered FastMCP tools
+│   │   ├── threat_feeds.py     # Bulk IOC + 40+ CTI RSS ingestor & 90-day retro SIEM hunter
+│   │   ├── threat_intel.py     # Multi-feed threat intel & behavioral risk engine
+│   │   └── vuln_scanner.py     # Asset-to-CVE & CISA KEV vulnerability correlator
+│   ├── tests/                  # Pytest automated test suite (44 unit tests)
 │   ├── Dockerfile              # Containerized MCP server
 │   └── pyproject.toml          # Project dependencies and tool settings
 ├── scripts/                    # Live verification, rule curation & SecOps runners
-│   ├── curate_detection_rules.py  # 3-stage CLI for rule scanning, dry-run & deployment
-│   └── test_threat_intel_live.py  # End-to-end threat intel & AI triage demo script
+│   ├── curate_detection_rules.py      # 3-stage CLI for rule scanning, dry-run & deployment
+│   ├── run_threat_intel_pipeline.py   # 4-stage CTI, asset vulnerability & identity OSINT runner
+│   └── test_threat_intel_live.py      # End-to-end threat intel & AI triage demo script
 ├── LICENSE                     # MIT License
 └── README.md                   # Platform documentation
 ```
+
+---
+
+## 🙏 Acknowledgments, Architectural Influences & AI Collaboration
+
+No security engineering project is built in isolation. This platform stands on the shoulders of open-source security researchers, threat intelligence practitioners, and agentic AI tooling:
+
+- **Built Within [Google Antigravity](https://idx.dev/)**: Architected, co-developed, tested, and verified inside **Google Antigravity**, pairing human infrastructure design and physical homelab operations (Proxmox VE, UniFi Dream Router, NVIDIA GPU passthrough, Windows 11 Sysmon) with agentic AI pair-engineering and live Model Context Protocol (**FastMCP**) execution.
+- **[Matt Snyder — `matt-snyder-stuff/threat-intel`](https://github.com/matt-snyder-stuff/threat-intel)**: Special thanks to Matt Snyder's *"Building AI Agents for Threat Intel"* architecture, which directly guided our multi-source CTI ingestion pipeline, organization-weighted relevance scoring (`environment-profile.json`), 40+ curated RSS/Atom feed taxonomy, 90-day retroactive SIEM IOC matching (`late-ioc-matcher`), and analyst review disposition lifecycle.
+- **[Elastic Security — `elastic/detection-rules`](https://github.com/elastic/detection-rules)**: Upstream EQL/KQL detection engineering repository powering our automated 3-stage `_field_caps` rule curation and 30-day live retro-hunt pipeline.
+- **[SwiftOnSecurity — `sysmon-config`](https://github.com/SwiftOnSecurity/sysmon-config)**: High-signal Microsoft Sysmon endpoint configuration baseline.
+- **Open Threat Intelligence & OSINT Communities**: Gratitude to **[abuse.ch](https://abuse.ch/)** (Feodo Tracker, URLhaus, MalwareBazaar), **[CISA Known Exploited Vulnerabilities (KEV)](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)**, **[NIST NVD](https://nvd.nist.gov/)**, **[HudsonRock Cavalier](https://www.hudsonrock.com/free-tools)**, **[XposedOrNot](https://xposedornot.com/)**, and **[Shodan InternetDB](https://internetdb.shodan.io/)** for providing accessible, high-fidelity threat and exposure telemetry.
 
 ---
 

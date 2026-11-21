@@ -16,6 +16,10 @@ from src.ollama import OllamaClientManager
 from src.ai_harness import AITaskHarness
 from src.threat_intel import ThreatIntelManager, INTERNAL_PRIVATE_CIDRS
 from src.detection_rules import DetectionRuleCurator
+from src.asset_inventory import AssetInventoryManager
+from src.threat_feeds import ThreatFeedPipeline
+from src.vuln_scanner import AssetVulnerabilityScanner
+from src.identity_osint import IdentityExposureMonitor
 
 # Initialize FastMCP Server
 mcp = FastMCP("jarvis-elastic-siem")
@@ -29,6 +33,14 @@ ai_harness = AITaskHarness(
 )
 threat_intel = ThreatIntelManager(es_manager=es_manager)
 rule_curator = DetectionRuleCurator(es_manager=es_manager, ai_harness=ai_harness)
+asset_inventory = AssetInventoryManager(es_manager=es_manager, proxmox_manager=proxmox_manager)
+threat_feeds = ThreatFeedPipeline(es_manager=es_manager, inventory_manager=asset_inventory)
+vuln_scanner = AssetVulnerabilityScanner(
+    es_manager=es_manager,
+    inventory_manager=asset_inventory,
+    ai_harness=ai_harness,
+)
+identity_monitor = IdentityExposureMonitor(es_manager=es_manager)
 
 
 @mcp.tool(
@@ -729,6 +741,151 @@ async def stage_and_deploy_detection_rule(
         custom_exceptions=custom_exceptions,
         override_severity=override_severity,
         deploy_to_kibana=deploy_to_kibana,
+    )
+
+
+@mcp.tool(
+    name="sync_asset_inventory",
+    description="Discover and synchronize homelab & enterprise asset inventory (UniFi Dream Router, Proxmox VE, Windows 11 Sysmon endpoint, Elastic SIEM, Ollama GPU node) using telemetry auto-discovery, environment-profile.json, and active LAN port probing into Elasticsearch (logs-threat_intel.assets-default).",
+)
+async def sync_asset_inventory(
+    run_active_scan: Annotated[
+        bool,
+        Field(description="Whether to run asynchronous TCP port and service banner probing across discovered hosts"),
+    ] = True,
+    extra_ips: Annotated[
+        Optional[List[str]],
+        Field(description="Optional list of additional LAN IP addresses to probe and add to inventory"),
+    ] = None,
+) -> Dict[str, Any]:
+    """Synchronize hybrid asset inventory into Elastic SIEM."""
+    return await asset_inventory.sync_asset_inventory(
+        run_active_scan=run_active_scan,
+        extra_ips=extra_ips,
+    )
+
+
+@mcp.tool(
+    name="ingest_threat_intel_feeds",
+    description="Ingest bulk IOC feeds (abuse.ch Feodo Tracker C2 IPs, URLhaus malware hosts, MalwareBazaar SHA256 hashes) and 40+ curated CTI RSS feeds, score against the local environment profile, run a 90-day retroactive SIEM hunt across UniFi and Sysmon logs, and index into logs-threat_intel.indicators-default.",
+)
+async def ingest_threat_intel_feeds(
+    feed_set: Annotated[
+        str,
+        Field(description="RSS feed catalog size: 'starter' (6 core feeds for fast execution) or 'full' (40+ government, vendor, news, cloud/AI feeds)"),
+    ] = "starter",
+    include_abuse_ch: Annotated[
+        bool,
+        Field(description="Include zero-auth bulk IOC feeds from abuse.ch (Feodo Tracker, URLhaus, MalwareBazaar)"),
+    ] = True,
+    lookback_days: Annotated[
+        int,
+        Field(description="Number of historical days in Elastic SIEM (UniFi & Sysmon) to search for retroactive IOC matches"),
+    ] = 90,
+) -> Dict[str, Any]:
+    """Ingest external CTI feeds, score relevance, and run retroactive SIEM matching."""
+    return await threat_feeds.ingest_all_feeds(
+        feed_set=feed_set,
+        include_abuse_ch=include_abuse_ch,
+        lookback_days=lookback_days,
+    )
+
+
+@mcp.tool(
+    name="scan_asset_vulnerabilities",
+    description="Correlate inventoried assets (Ubiquiti UniFi Dream Router, Proxmox VE, Windows 11 Workstation, Elasticsearch/Kibana/Logstash, Ollama) against CISA Known Exploited Vulnerabilities (KEV) and NIST NVD CVE API v2, compute operational priority scores, and synthesize local AI remediation advice.",
+)
+async def scan_asset_vulnerabilities(
+    query_nvd: Annotated[
+        bool,
+        Field(description="Whether to query the live NIST NVD CVE API v2 in addition to CISA KEV"),
+    ] = True,
+    generate_ai_advisory: Annotated[
+        bool,
+        Field(description="Whether to run local Ollama GPU model (llama3.2:3b) to synthesize a remediation brief"),
+    ] = True,
+    max_per_asset: Annotated[
+        int,
+        Field(description="Maximum top vulnerabilities to index per asset"),
+    ] = 8,
+) -> Dict[str, Any]:
+    """Scan inventoried assets for recent CVEs and actively exploited CISA KEV flaws."""
+    return await vuln_scanner.scan_all_assets(
+        query_nvd=query_nvd,
+        generate_ai_advisory=generate_ai_advisory,
+        max_per_asset=max_per_asset,
+    )
+
+
+@mcp.tool(
+    name="check_identity_exposure",
+    description="Scan free OSINT, infostealer (HudsonRock Cavalier), credential breach (XposedOrNot), GitHub public commit metadata, and Shodan InternetDB WAN footprint feeds for personal user/email exposure and index into logs-threat_intel.identity-default.",
+)
+async def check_identity_exposure(
+    names: Annotated[
+        Optional[List[str]],
+        Field(description="Optional list of full names to check (defaults to IDENTITY_WATCH_NAMES in .env)"),
+    ] = None,
+    emails: Annotated[
+        Optional[List[str]],
+        Field(description="Optional list of email addresses to check (defaults to IDENTITY_WATCH_EMAILS in .env)"),
+    ] = None,
+    usernames: Annotated[
+        Optional[List[str]],
+        Field(description="Optional list of usernames/handles to check (defaults to IDENTITY_WATCH_USERNAMES in .env)"),
+    ] = None,
+    check_wan_footprint: Annotated[
+        bool,
+        Field(description="Whether to check the homelab's external WAN IP against Shodan InternetDB for exposed ports/CVEs"),
+    ] = True,
+) -> Dict[str, Any]:
+    """Check user identities, emails, and external WAN footprint for public breaches or infostealer logs."""
+    return await identity_monitor.scan_identity_exposures(
+        names=names,
+        emails=emails,
+        usernames=usernames,
+        check_wan_footprint=check_wan_footprint,
+    )
+
+
+@mcp.tool(
+    name="update_intel_disposition",
+    description="Update the analyst review disposition ('unreviewed', 'actioned', 'confirmed', 'false_positive', 'expired', 'revoked') on a threat intel indicator, CVE vulnerability, or identity exposure record in Elasticsearch.",
+)
+async def update_intel_disposition(
+    item_id: Annotated[
+        str,
+        Field(description="Document ID in Elasticsearch (e.g. 'feodo-ip-1.2.3.4', 'vuln-udr-gateway-01-CVE-2024-1234', 'identity-xposedornot-...')"),
+    ],
+    disposition: Annotated[
+        str,
+        Field(description="New disposition: 'unreviewed', 'actioned', 'confirmed', 'false_positive', 'expired', or 'revoked'"),
+    ],
+    index_name: Annotated[
+        str,
+        Field(description="Target Elasticsearch index ('logs-threat_intel.indicators-default', 'logs-threat_intel.vulnerabilities-default', or 'logs-threat_intel.identity-default')"),
+    ] = "logs-threat_intel.indicators-default",
+    owner: Annotated[
+        str,
+        Field(description="Analyst or team owner recording the decision"),
+    ] = "SecOps Analyst",
+    note: Annotated[
+        str,
+        Field(description="Analyst review note or mitigation context"),
+    ] = "",
+    case_url: Annotated[
+        str,
+        Field(description="Optional incident or ticket URL"),
+    ] = "",
+) -> Dict[str, Any]:
+    """Persist analyst review disposition and notes on a threat intelligence document."""
+    return await threat_feeds.update_disposition(
+        item_id=item_id,
+        disposition=disposition,
+        index_name=index_name,
+        owner=owner,
+        note=note,
+        case_url=case_url,
     )
 
 

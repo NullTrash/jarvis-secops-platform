@@ -1,0 +1,149 @@
+{
+  "name": "Jarvis Hybrid SecOps Homelab & Enterprise Environment",
+  "priorities": {
+    "labels": {
+      "network-perimeter": 35,
+      "unifi": 35,
+      "proxmox": 30,
+      "hypervisor": 30,
+      "windows-endpoint": 25,
+      "elastic-siem": 25,
+      "ai-llm": 20,
+      "ai-mcp": 25,
+      "ai-agentic": 20,
+      "cloud-container": 20,
+      "ransomware": 25,
+      "zero-day": 35
+    },
+    "vendors": {
+      "Ubiquiti": 40,
+      "Proxmox": 35,
+      "Debian": 20,
+      "Microsoft": 30,
+      "Elastic": 30,
+      "Docker": 25,
+      "NVIDIA": 20,
+      "Ollama": 25,
+      "GitHub": 20,
+      "Cloudflare": 15
+    },
+    "threat_actors": {
+      "Volt Typhoon": 35,
+      "Salt Typhoon": 35,
+      "Scattered Spider": 30,
+      "APT28": 30,
+      "APT29": 30,
+      "Sandworm": 25,
+      "Lazarus": 25,
+      "LockBit": 25,
+      "RansomHub": 25,
+      "Akira": 25,
+      "Black Basta": 25
+    },
+    "keywords": {
+      "unifi dream router": 45,
+      "unifi os": 40,
+      "unifi network": 40,
+      "ubiquiti": 40,
+      "proxmox ve": 40,
+      "pve-manager": 35,
+      "kvm": 25,
+      "qemu": 25,
+      "elasticsearch": 35,
+      "kibana": 35,
+      "logstash": 30,
+      "sysmon": 30,
+      "winlogbeat": 25,
+      "windows 11": 25,
+      "ollama": 30,
+      "fastmcp": 30,
+      "router firmware": 30,
+      "edge gateway": 30
+    }
+  },
+  "baseline_assets": [
+    {
+      "asset_id": "udr-gateway-01",
+      "name": "Ubiquiti UniFi Dream Router (UDR)",
+      "ip": "10.0.0.1",
+      "hostname": "udr.internal.lab",
+      "role": "perimeter-gateway-firewall",
+      "criticality": "critical",
+      "criticality_weight": 40,
+      "internet_facing": true,
+      "vendor": "Ubiquiti",
+      "product": "UniFi Dream Router / UniFi OS",
+      "version": "4.0+",
+      "os_family": "Linux (UniFi OS)",
+      "cpe_patterns": [
+        "cpe:2.3:h:ui:unifi_dream_router:*:*:*:*:*:*:*:*",
+        "cpe:2.3:o:ui:unifi_os:*:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ui:unifi_network_application:*:*:*:*:*:*:*:*"
+      ],
+      "search_keywords": ["Ubiquiti UniFi", "UniFi Dream Router", "UniFi OS", "UniFi Network"],
+      "expected_ports": [22, 53, 80, 443, 8443]
+    },
+    {
+      "asset_id": "proxmox-pve-01",
+      "name": "Proxmox VE Hypervisor Host (pve)",
+      "ip": "10.0.0.10",
+      "hostname": "pve.internal.lab",
+      "role": "virtualization-hypervisor",
+      "criticality": "critical",
+      "criticality_weight": 35,
+      "internet_facing": false,
+      "vendor": "Proxmox",
+      "product": "Proxmox Virtual Environment",
+      "version": "8.x",
+      "os_family": "Debian Linux / KVM",
+      "cpe_patterns": [
+        "cpe:2.3:a:proxmox:virtual_environment:*:*:*:*:*:*:*:*",
+        "cpe:2.3:o:debian:debian_linux:12.0:*:*:*:*:*:*:*"
+      ],
+      "search_keywords": ["Proxmox Virtual Environment", "Proxmox VE", "QEMU KVM"],
+      "expected_ports": [22, 8006]
+    },
+    {
+      "asset_id": "siem-gpu-node-01",
+      "name": "Jarvis Elastic SIEM & Ollama GPU Compute Node",
+      "ip": "10.0.0.20",
+      "hostname": "siem.internal.lab",
+      "role": "siem-and-ai-compute",
+      "criticality": "high",
+      "criticality_weight": 30,
+      "internet_facing": false,
+      "vendor": "Elastic",
+      "product": "Elasticsearch / Kibana / Logstash / Ollama",
+      "version": "8.17.0",
+      "os_family": "Ubuntu Linux / Docker",
+      "cpe_patterns": [
+        "cpe:2.3:a:elastic:elasticsearch:8.17.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:elastic:kibana:8.17.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:elastic:logstash:8.17.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ollama:ollama:*:*:*:*:*:*:*:*"
+      ],
+      "search_keywords": ["Elasticsearch", "Kibana", "Logstash", "Ollama"],
+      "expected_ports": [22, 514, 5044, 5601, 9200, 11434]
+    },
+    {
+      "asset_id": "workstation-Workstation-01-01",
+      "name": "Windows 11 SecOps Workstation (Workstation-01)",
+      "ip": "10.0.0.15",
+      "hostname": "Workstation-01",
+      "role": "endpoint-workstation",
+      "criticality": "high",
+      "criticality_weight": 25,
+      "internet_facing": false,
+      "vendor": "Microsoft",
+      "product": "Windows 11 / Sysmon / Winlogbeat",
+      "version": "23H2/24H2",
+      "os_family": "Windows 11",
+      "cpe_patterns": [
+        "cpe:2.3:o:microsoft:windows_11_23h2:*:*:*:*:*:*:*:*",
+        "cpe:2.3:a:microsoft:sysmon:*:*:*:*:*:*:*:*"
+      ],
+      "search_keywords": ["Microsoft Windows 11", "Sysmon", "Winlogbeat"],
+      "expected_ports": [135, 445]
+    }
+  ]
+}
